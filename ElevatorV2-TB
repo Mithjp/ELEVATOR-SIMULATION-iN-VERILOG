@@ -1,0 +1,102 @@
+module elevator_controller_tb;
+
+reg clk;
+reg rst;
+
+reg [3:0] button;
+reg man_door_open;
+reg man_door_close;
+
+wire move_up;
+wire move_down;
+wire door_open;
+wire [6:0] seg;
+
+// Instantiate DUT
+elevator_controller dut (
+    .clk(clk),
+    .rst(rst),
+    .button(button),
+    .man_door_open(man_door_open),
+    .man_door_close(man_door_close),
+    .move_up(move_up),
+    .move_down(move_down),
+    .door_open(door_open),
+    .seg(seg)
+);
+
+// Clock generation
+initial begin
+    clk = 0;
+    forever #5 clk = ~clk;   // 10ns clock
+end
+
+// Stimulus
+initial begin
+    $dumpfile("elevator_wave.vcd");
+    $dumpvars(0, elevator_controller_tb);
+
+    rst = 1;
+    button = 0;
+    man_door_open = 0;
+    man_door_close = 0;
+
+    #20 rst = 0;
+
+    // ==========================
+    // Test 1: Go to Floor 3
+    // ==========================
+    #20 button = 4'b1000;   // request floor 3
+    #10 button = 4'b0000;
+
+    #200;
+
+    // ==========================
+    // Test 2: While moving, request floor 1
+    // ==========================
+    button = 4'b0010;  // floor 1
+    #10 button = 0;
+
+    #300;
+
+    // ==========================
+    // Test 3: Manual door open
+    // ==========================
+    man_door_open = 1;
+    #20;
+    man_door_open = 0;
+
+    #100;
+
+    // ==========================
+    // Test 4: Manual door close
+    // ==========================
+    man_door_close = 1;
+    #20;
+    man_door_close = 0;
+
+    #200;
+
+    // ==========================
+    // Test 5: Multiple requests
+    // ==========================
+    button = 4'b1010;  // floor 3 and floor 1
+    #10 button = 0;
+
+    #800;
+
+    $finish;
+end
+
+// Monitor
+initial begin
+    $monitor("Time=%0t | Floor=%0d | UP=%b | DOWN=%b | DOOR=%b | Requests=%b",
+              $time,
+              dut.floor,
+              move_up,
+              move_down,
+              door_open,
+              dut.request);
+end
+
+endmodule
